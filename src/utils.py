@@ -6,6 +6,68 @@ import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
 
+
+def inspect_data(df, datetime_col=None):
+    print("Shape:", df.shape)
+    print("\nColumns:")
+    print(df.columns.tolist())
+
+    print("\nData types:")
+    print(df.dtypes)
+
+    print("\nFirst 5 rows:")
+    print(df.head())
+
+    print("\nMissing values per column:")
+    print(df.isnull().sum())
+
+    print("\nMissing value percentages:")
+    print((df.isnull().mean() * 100).round(2))
+
+    print("\nDuplicate rows:", df.duplicated().sum())
+
+    if datetime_col and datetime_col in df.columns:
+        print(f"\nConverting '{datetime_col}' to datetime...")
+        df[datetime_col] = pd.to_datetime(df[datetime_col], errors="coerce")
+        print(df[[datetime_col]].head())
+        print("\nDatetime nulls after conversion:", df[datetime_col].isnull().sum())
+
+    print("\nNumeric summary:")
+    print(df.describe())
+
+    return df
+
+
+def plot_numeric_distributions(df, cols=None, bins=30):
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    if cols is None:
+        cols = numeric_cols
+
+    for col in cols:
+        plt.figure(figsize=(6, 4))
+        df[col].hist(bins=bins)
+        plt.title(f"Distribution of {col}")
+        plt.xlabel(col)
+        plt.ylabel("Frequency")
+        plt.tight_layout()
+        plt.show()
+        
+def plot_boxplots(df, cols=None):
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    if cols is None:
+        cols = numeric_cols
+
+    for col in cols:
+        plt.figure(figsize=(6, 4))
+        plt.boxplot(df[col].dropna())
+        plt.title(f"Boxplot of {col}")
+        plt.ylabel(col)
+        plt.tight_layout()
+        plt.show()
+
+
 def prepare_data(df, target_col, feature_cols, seq_length, train_split=0.8, batch_size=64):
     """
     Generalized sequence creator with NO data leakage.
