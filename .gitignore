@@ -7,7 +7,9 @@ venv/
 torchenv/
 
 # Data
-data/
+data/raw/*
+data/interim/*
+data/processed/*
 
 # Models
 *.pt
