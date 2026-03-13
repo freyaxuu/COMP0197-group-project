@@ -245,7 +245,7 @@ def prepare_fx_data(
 def inverse_transform_target(
     values,
     scaler,
-    feature_columns,
+    columns,
     target_col,
 ):
     """
@@ -256,12 +256,12 @@ def inverse_transform_target(
 
     values = np.asarray(values).reshape(-1, 1)
 
-    if target_col not in feature_columns:
-        raise ValueError(f"target_col '{target_col}' not found in feature_columns")
+    if target_col not in columns:
+        raise ValueError(f"target_col '{target_col}' not found in columns")
 
-    target_idx = feature_columns.index(target_col)
+    target_idx = columns.index(target_col)
 
-    dummy = np.zeros((len(values), len(feature_columns)))
+    dummy = np.zeros((len(values), len(columns)))
     dummy[:, target_idx] = values[:, 0]
 
     inv = scaler.inverse_transform(dummy)
