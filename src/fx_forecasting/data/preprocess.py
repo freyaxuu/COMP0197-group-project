@@ -1,5 +1,4 @@
 # src/fx_forecasting/data/preprocessing.py
-# src/fx_forecasting/data/preprocessing.py
 
 from __future__ import annotations
 
@@ -146,7 +145,7 @@ def create_windows(
     X shape: (n_samples, lookback, n_features)
     y shape: (n_samples,)
     """
-    feature_cols = [c for c in df.columns if c not in [timestamp_col, target_col]]
+    feature_cols = [c for c in df.columns if c != timestamp_col]
 
     X, y = [], []
     features = df[feature_cols].values

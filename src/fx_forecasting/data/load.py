@@ -31,7 +31,8 @@ def load_fx_csv(
     # Convert to datetime
     df["timestamp"] = pd.to_datetime(df[date_col], errors="coerce")
 
-    df = df.drop(columns=[date_col])
+    if date_col != "timestamp":
+        df = df.drop(columns=[date_col])
 
     # Remove rows where timestamp failed
     df = df.dropna(subset=["timestamp"])
