@@ -207,6 +207,8 @@ def prepare_fx_data(
             )
 
     df = drop_feature_nans(df)
+    numeric_cols = df.select_dtypes(include="number").columns.tolist()
+
 
     if target_col not in df.columns:
         raise ValueError(f"target_col '{target_col}' not found after preprocessing")
@@ -238,7 +240,7 @@ def prepare_fx_data(
         timestamp_col=timestamp_col,
     )
 
-    return X_train, y_train, X_test, y_test, scaler
+    return X_train, y_train, X_test, y_test, scaler, numeric_cols
 
 
 def inverse_transform_target(

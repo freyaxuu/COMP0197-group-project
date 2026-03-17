@@ -48,4 +48,4 @@ def load_fx_csv(
 
     df = df[["timestamp"] + numeric_cols]
 
-    return df, numeric_cols
+    return df
