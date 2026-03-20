@@ -1,5 +1,3 @@
-# src/fx_forecasting/models/deterministic_lstm.py
-
 import torch
 import torch.nn as nn
 
@@ -34,7 +32,6 @@ class DeterministicLSTM(nn.Module):
         """
         x shape: (batch, seq_len, input_dim)
         """
-
         lstm_out, _ = self.lstm(x)
 
         # take final timestep output

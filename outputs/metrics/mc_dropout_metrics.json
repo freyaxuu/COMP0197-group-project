@@ -1,0 +1,13 @@
+{
+  "model_type": "mc_dropout",
+  "MSE_mean": 0.023481056094169617,
+  "RMSE_mean": 0.1532353013753891,
+  "MAE_mean": 0.12285882234573364,
+  "Coverage_95": 0.7167300380228137,
+  "Avg_Interval_Width": 0.31825175881385803,
+  "Mean_Predictive_STD": 0.032723169454438324,
+  "Median_Predictive_STD": 0.03126046223321602,
+  "Min_Predictive_STD": 0.010538949228680915,
+  "Max_Predictive_STD": 0.06207710558230932,
+  "Num_Test_Points": 526
+}
