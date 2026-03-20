@@ -4,9 +4,6 @@ from tqdm import tqdm
 
 
 def _compute_regression_metrics(preds, targets):
-    """
-    Compute MAE and RMSE for tensors.
-    """
     mae = torch.mean(torch.abs(preds - targets)).item()
     rmse = torch.sqrt(torch.mean((preds - targets) ** 2)).item()
     return mae, rmse
@@ -39,9 +36,6 @@ def train_model(
     patience_counter = 0
 
     for epoch in range(epochs):
-        # -------------------------
-        # Training
-        # -------------------------
         model.train()
         train_batch_losses = []
         train_batch_mae = []
@@ -49,11 +43,11 @@ def train_model(
 
         for batch_x, batch_y in tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs} [Train]"):
             batch_x = batch_x.to(device)
-            batch_y = batch_y.to(device)
+            batch_y = batch_y.to(device).view(-1)
 
             optimizer.zero_grad()
 
-            output = model(batch_x).squeeze()
+            output = model(batch_x).view(-1)
             loss = criterion(output, batch_y)
 
             loss.backward()
@@ -69,9 +63,6 @@ def train_model(
         avg_train_mae = np.mean(train_batch_mae)
         avg_train_rmse = np.mean(train_batch_rmse)
 
-        # -------------------------
-        # Validation
-        # -------------------------
         model.eval()
         val_batch_losses = []
         val_batch_mae = []
@@ -80,9 +71,9 @@ def train_model(
         with torch.no_grad():
             for batch_x, batch_y in tqdm(val_loader, desc=f"Epoch {epoch+1}/{epochs} [Val]"):
                 batch_x = batch_x.to(device)
-                batch_y = batch_y.to(device)
+                batch_y = batch_y.to(device).view(-1)
 
-                output = model(batch_x).squeeze()
+                output = model(batch_x).view(-1)
                 loss = criterion(output, batch_y)
 
                 mae, rmse = _compute_regression_metrics(output, batch_y)
@@ -109,9 +100,6 @@ def train_model(
             f"Train RMSE: {avg_train_rmse:.4f} | Val RMSE: {avg_val_rmse:.4f}"
         )
 
-        # -------------------------
-        # Save best model
-        # -------------------------
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             best_epoch = epoch + 1
@@ -132,9 +120,6 @@ def train_model(
         else:
             patience_counter += 1
 
-        # -------------------------
-        # Early stopping
-        # -------------------------
         if early_stopping_patience is not None and patience_counter >= early_stopping_patience:
             print(f"Early stopping at epoch {epoch+1}")
             break

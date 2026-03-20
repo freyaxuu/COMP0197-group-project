@@ -1,5 +1,3 @@
-# src/fx_forecasting/data/preprocessing.py
-
 from __future__ import annotations
 
 import numpy as np
@@ -33,13 +31,21 @@ def add_log_returns(
 ) -> pd.DataFrame:
     """
     Add log return columns for price series.
+
+    Minimal fix:
+    keep original logic as much as possible, but convert invalid log values
+    to NaN so they can be dropped later.
     """
     df = df.copy()
+
     if cols is None:
         cols = [c for c in df.columns if c != timestamp_col]
 
     for col in cols:
-        df[f"{col}_ret"] = np.log(df[col] / df[col].shift(1))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ret = np.log(df[col] / df[col].shift(1))
+        ret = ret.replace([np.inf, -np.inf], np.nan)
+        df[f"{col}_ret"] = ret
 
     return df
 
@@ -50,10 +56,8 @@ def add_moving_averages(
     timestamp_col: str = "timestamp",
     cols: Optional[Sequence[str]] = None,
 ) -> pd.DataFrame:
-    """
-    Add moving average columns for price series.
-    """
     df = df.copy()
+
     if cols is None:
         cols = [
             c for c in df.columns
@@ -73,10 +77,8 @@ def add_rolling_volatility(
     timestamp_col: str = "timestamp",
     ret_cols: Optional[Sequence[str]] = None,
 ) -> pd.DataFrame:
-    """
-    Add rolling std on return columns.
-    """
     df = df.copy()
+
     if ret_cols is None:
         ret_cols = [c for c in df.columns if c.endswith("_ret")]
 
@@ -86,20 +88,10 @@ def add_rolling_volatility(
     return df
 
 
-def drop_feature_nans(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Drop rows introduced by rolling windows / returns.
-    """
-    return df.dropna().reset_index(drop=True)
-
-
 def time_train_test_split(
     df: pd.DataFrame,
     test_ratio: float = 0.2,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Time-order-preserving split.
-    """
     split_idx = int(len(df) * (1 - test_ratio))
     train_df = df.iloc[:split_idx].copy()
     test_df = df.iloc[split_idx:].copy()
@@ -112,10 +104,6 @@ def scale_train_test(
     timestamp_col: str = "timestamp",
     scaler_type: str = "standard",
 ) -> Tuple[pd.DataFrame, pd.DataFrame, object]:
-    """
-    Fit scaler on train only, then transform train and test.
-    This avoids leakage.
-    """
     train_df = train_df.copy()
     test_df = test_df.copy()
 
@@ -140,11 +128,6 @@ def create_windows(
     lookback: int = 30,
     timestamp_col: str = "timestamp",
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Create sliding windows for sequence models.
-    X shape: (n_samples, lookback, n_features)
-    y shape: (n_samples,)
-    """
     feature_cols = [c for c in df.columns if c != timestamp_col]
 
     X, y = [], []
@@ -173,43 +156,39 @@ def prepare_fx_data(
     make_windows: bool = False,
     lookback: int = 30,
 ):
-    """
-    End-to-end preprocessing pipeline for FX data.
-
-    Returns either:
-    - train_df, test_df, scaler
-    or
-    - X_train, y_train, X_test, y_test, scaler
-    """
     df = clean_fx_data(df, timestamp_col=timestamp_col)
 
-    original_price_cols = [c for c in df.columns if c != timestamp_col]
+    original_cols = [c for c in df.columns if c != timestamp_col]
 
     if add_returns:
-        df = add_log_returns(df, timestamp_col=timestamp_col, cols=original_price_cols)
+        df = add_log_returns(
+            df,
+            timestamp_col=timestamp_col,
+            cols=original_cols,
+        )
 
     if add_ma:
         df = add_moving_averages(
             df,
             windows=ma_windows,
             timestamp_col=timestamp_col,
-            cols=original_price_cols,
+            cols=original_cols,
         )
 
     if add_volatility:
         ret_cols = [c for c in df.columns if c.endswith("_ret")]
-        if len(ret_cols) > 0:
-            df = add_rolling_volatility(
-                df,
-                window=vol_window,
-                timestamp_col=timestamp_col,
-                ret_cols=ret_cols,
-            )
+        df = add_rolling_volatility(
+            df,
+            window=vol_window,
+            timestamp_col=timestamp_col,
+            ret_cols=ret_cols,
+        )
 
-    df = drop_feature_nans(df)
+    # only now drop rows with NaN/inf introduced by returns or rolling
+    df = df.replace([np.inf, -np.inf], np.nan)
+    df = df.dropna().reset_index(drop=True)
 
-    if target_col not in df.columns:
-        raise ValueError(f"target_col '{target_col}' not found after preprocessing")
+    numeric_cols = df.select_dtypes(include="number").columns.tolist()
 
     train_df, test_df = time_train_test_split(df, test_ratio=test_ratio)
 
@@ -238,21 +217,10 @@ def prepare_fx_data(
         timestamp_col=timestamp_col,
     )
 
-    return X_train, y_train, X_test, y_test, scaler
+    return X_train, y_train, X_test, y_test, scaler, numeric_cols
 
 
-def inverse_transform_target(
-    values,
-    scaler,
-    columns,
-    target_col,
-):
-    """
-    Inverse-transform a 1D array of target values using a scaler fitted on
-    multiple columns.
-    """
-    import numpy as np
-
+def inverse_transform_target(values, scaler, columns, target_col):
     values = np.asarray(values).reshape(-1, 1)
 
     if target_col not in columns:
@@ -264,5 +232,4 @@ def inverse_transform_target(
     dummy[:, target_idx] = values[:, 0]
 
     inv = scaler.inverse_transform(dummy)
-
     return inv[:, target_idx]
