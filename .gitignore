@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+
+data/raw/
+data/interim/
+training_figures/
+test_figures/
+test_results/
+
+.env
+.venv/
+venv/
+*.egg-info/
